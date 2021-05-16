@@ -1,12 +1,13 @@
 package models
 
 import (
-	// "fmt"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"context"
 	"strconv"
+	"sync"
 
 	// "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -68,17 +69,26 @@ func(wallet *ColdWallet) GetOwnerName() string{
 	return wallet.ownerName
 }
 
-func(wallet *ColdWallet) GetDerivationPath() string {
-	return "m/" + wallet.purpose + "/" + wallet.coinType + "/" + "0'/0/" + strconv.FormatUint(wallet.index, 10)
+func(wallet *ColdWallet) makeDerivationPath(index uint64) string {
+	return "m/" + wallet.purpose + "/" + wallet.coinType + "/" + "0'/0/" + strconv.FormatUint(index, 10)
 }
 
-func(wallet *ColdWallet) GetAccount() *accounts.Account {
-	path := hdwallet.MustParseDerivationPath(wallet.GetDerivationPath())
+func(wallet *ColdWallet) GetDerivationPath() string {
+	return wallet.makeDerivationPath(wallet.index)
+}
+
+func(wallet *ColdWallet) GetNewAccount() *accounts.Account {
+	account := wallet.GetAccount(wallet.GetDerivationPath());
+	wallet.index += 1
+	return account
+}
+
+func(wallet *ColdWallet) GetAccount(derivationPath string) *accounts.Account {
+	path := hdwallet.MustParseDerivationPath(derivationPath)
 	account, err := wallet.Derive(path, false)
 	if err != nil {
 		log.Fatal(err)
 	}
-	wallet.index += 1
 	return &account
 }
 
@@ -94,28 +104,74 @@ func(wallet *ETHWallet) WeiToEth(weiAmount *big.Int) *big.Float {
 	return amount
 }
 
-func(wallet *ETHWallet) GetBalanceInWei(client *ethclient.Client, account *accounts.Account) *big.Int{
-	weiBalance, err := client.BalanceAt(context.Background(), account.Address, nil)
+func(wallet *ETHWallet) GetBalanceInWei(client *ethclient.Client) *big.Int{
+	c := make(chan big.Int)
+	var wg sync.WaitGroup
 
-	if err != nil {
-		log.Fatal(err)
+	for i := 0; i < int(wallet.index) ;i++ {
+		var index = i
+		wg.Add(1)
+		go func() {
+			account := wallet.GetAccount(wallet.makeDerivationPath(uint64(index)))
+			weiBalance, err := client.BalanceAt(context.Background(), account.Address, nil)
+			if err != nil {
+				c <- *big.NewInt(int64(0))
+			} else {
+				c <- *weiBalance
+			}
+			wg.Done()
+		}()
 	}
 
-	return weiBalance
-}
+	go func(){
+		wg.Wait()
+		close(c)
+	}()
 
-func(wallet *ETHWallet) GetBalanceInEth(client *ethclient.Client, account *accounts.Account) *big.Float{
-	return wallet.WeiToEth(wallet.GetBalanceInWei(client, account))
-}
-
-func(wallet *ETHWallet) GetPendingBalanceInWei(client *ethclient.Client, account *accounts.Account) *big.Int {
-	pendingBalance, err := client.PendingBalanceAt(context.Background(), account.Address)
-	if err != nil {
-		log.Fatal(err)
+	totalWeiBalance := big.NewInt(int64(0))
+	for balance := range c {
+		totalWeiBalance.Add(totalWeiBalance, &balance)
 	}
-	return pendingBalance
+	return totalWeiBalance
 }
 
-func(wallet *ETHWallet) GetPendingBalanceInEth(client *ethclient.Client, account *accounts.Account) *big.Float{
-	return wallet.WeiToEth(wallet.GetPendingBalanceInWei(client, account))
+func(wallet *ETHWallet) GetBalanceInEth(client *ethclient.Client) *big.Float{
+	return wallet.WeiToEth(wallet.GetBalanceInWei(client))
+}
+
+func(wallet *ETHWallet) GetPendingBalanceInWei(client *ethclient.Client) *big.Int {
+
+	c := make(chan big.Int)
+	var wg sync.WaitGroup
+
+	for i := 0; i < int(wallet.index) ;i++ {
+		fmt.Println(i)
+		var index = i
+		wg.Add(1)
+		go func() {
+			account := wallet.GetAccount(wallet.makeDerivationPath(uint64(index)))
+			pendingBalance, err := client.PendingBalanceAt(context.Background(), account.Address)
+			if err != nil {
+				c <- *big.NewInt(int64(0))
+			} else {
+				c <- *pendingBalance
+			}
+			wg.Done()
+		}()
+	}
+
+	go func(){
+		wg.Wait()
+		close(c)
+	}()
+
+	totalPendingWeiBalance := big.NewInt(int64(0))
+	for balance := range c {
+		totalPendingWeiBalance.Add(totalPendingWeiBalance, &balance)
+	}
+	return totalPendingWeiBalance
+}
+
+func(wallet *ETHWallet) GetPendingBalanceInEth(client *ethclient.Client) *big.Float{
+	return wallet.WeiToEth(wallet.GetPendingBalanceInWei(client))
 }
