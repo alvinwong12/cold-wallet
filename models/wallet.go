@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 	"math"
 	"math/big"
@@ -69,12 +69,12 @@ func(wallet *ColdWallet) GetOwnerName() string{
 	return wallet.ownerName
 }
 
-func(wallet *ColdWallet) makeDerivationPath(index uint64) string {
+func(wallet *ColdWallet) makeDerivationPathFromIndex(index uint64) string {
 	return "m/" + wallet.purpose + "/" + wallet.coinType + "/" + "0'/0/" + strconv.FormatUint(index, 10)
 }
 
 func(wallet *ColdWallet) GetDerivationPath() string {
-	return wallet.makeDerivationPath(wallet.index)
+	return wallet.makeDerivationPathFromIndex(wallet.index)
 }
 
 func(wallet *ColdWallet) GetNewAccount() *accounts.Account {
@@ -105,31 +105,30 @@ func(wallet *ETHWallet) WeiToEth(weiAmount *big.Int) *big.Float {
 }
 
 func(wallet *ETHWallet) GetBalanceInWei(client *ethclient.Client) *big.Int{
-	c := make(chan big.Int)
+	balanceChannel := make(chan big.Int)
 	var wg sync.WaitGroup
 
 	for i := 0; i < int(wallet.index) ;i++ {
-		var index = i
 		wg.Add(1)
-		go func() {
-			account := wallet.GetAccount(wallet.makeDerivationPath(uint64(index)))
+		go func(index int) {
+			account := wallet.GetAccount(wallet.makeDerivationPathFromIndex(uint64(index)))
 			weiBalance, err := client.BalanceAt(context.Background(), account.Address, nil)
 			if err != nil {
-				c <- *big.NewInt(int64(0))
+				balanceChannel <- *big.NewInt(int64(0))
 			} else {
-				c <- *weiBalance
+				balanceChannel <- *weiBalance
 			}
 			wg.Done()
-		}()
+		}(i)
 	}
 
 	go func(){
 		wg.Wait()
-		close(c)
+		close(balanceChannel)
 	}()
 
 	totalWeiBalance := big.NewInt(int64(0))
-	for balance := range c {
+	for balance := range balanceChannel {
 		totalWeiBalance.Add(totalWeiBalance, &balance)
 	}
 	return totalWeiBalance
@@ -141,32 +140,30 @@ func(wallet *ETHWallet) GetBalanceInEth(client *ethclient.Client) *big.Float{
 
 func(wallet *ETHWallet) GetPendingBalanceInWei(client *ethclient.Client) *big.Int {
 
-	c := make(chan big.Int)
+	pendingBalanceChannel := make(chan big.Int)
 	var wg sync.WaitGroup
 
 	for i := 0; i < int(wallet.index) ;i++ {
-		fmt.Println(i)
-		var index = i
 		wg.Add(1)
-		go func() {
-			account := wallet.GetAccount(wallet.makeDerivationPath(uint64(index)))
+		go func(index int) {
+			account := wallet.GetAccount(wallet.makeDerivationPathFromIndex(uint64(index)))
 			pendingBalance, err := client.PendingBalanceAt(context.Background(), account.Address)
 			if err != nil {
-				c <- *big.NewInt(int64(0))
+				pendingBalanceChannel <- *big.NewInt(int64(0))
 			} else {
-				c <- *pendingBalance
+				pendingBalanceChannel <- *pendingBalance
 			}
 			wg.Done()
-		}()
+		}(i)
 	}
 
 	go func(){
 		wg.Wait()
-		close(c)
+		close(pendingBalanceChannel)
 	}()
 
 	totalPendingWeiBalance := big.NewInt(int64(0))
-	for balance := range c {
+	for balance := range pendingBalanceChannel {
 		totalPendingWeiBalance.Add(totalPendingWeiBalance, &balance)
 	}
 	return totalPendingWeiBalance
