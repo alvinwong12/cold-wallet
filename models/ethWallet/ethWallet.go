@@ -3,12 +3,14 @@ package ethWallet
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"sync"
 
 	"github.com/alvinwong12/cold-wallet/models/wallet"
+	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -19,16 +21,16 @@ const (
 type ETHWallet struct {
 	*wallet.ColdWallet `json:"Wallet"`
 	Wei *big.Float `json:"WEI"`
-	Gas_limit_simple_tx uint64 `json:"GasLimitSimpleTx"`
+	Gas_limit_simple_tx uint64 `json:"GasLimitSimple"`
 }
 
 func NewETHWallet(mnemonic string, ownerName string) *ETHWallet {
-	ethWallet := ETHWallet{
+	etheuremWallet := ETHWallet{
 		ColdWallet: wallet.NewColdWallet(mnemonic, ownerName, ETHEUREM),
 		Wei: big.NewFloat(math.Pow10(18)),
 		Gas_limit_simple_tx: uint64(21000),
 	}
-	return &ethWallet
+	return &etheuremWallet
 }
 
 func(etheuremWallet *ETHWallet) EthToWei(ethAmount *big.Float) *big.Int {
@@ -47,10 +49,10 @@ func(etheuremWallet *ETHWallet) GetBalanceInWei(client *ethclient.Client) *big.I
 	balanceChannel := make(chan big.Int)
 	var wg sync.WaitGroup
 
-	for i := 0; i < int(etheuremWallet.ColdWallet.Index) ;i++ {
+	for i := 0; i <= int(etheuremWallet.ColdWallet.Index) ;i++ {
 		wg.Add(1)
 		go func(index int) {
-			account := etheuremWallet.GetAccount(etheuremWallet.ColdWallet.MakeDerivationPathFromIndex(uint64(index)))
+			account := etheuremWallet.GetAccount(uint64(index))
 			weiBalance, err := client.BalanceAt(context.Background(), account.Address, nil)
 			if err != nil {
 				balanceChannel <- *big.NewInt(int64(0))
@@ -82,10 +84,10 @@ func(etheuremWallet *ETHWallet) GetPendingBalanceInWei(client *ethclient.Client)
 	pendingBalanceChannel := make(chan big.Int)
 	var wg sync.WaitGroup
 
-	for i := 0; i < int(etheuremWallet.ColdWallet.Index) ;i++ {
+	for i := 0; i <= int(etheuremWallet.ColdWallet.Index) ;i++ {
 		wg.Add(1)
 		go func(index int) {
-			account := etheuremWallet.GetAccount(etheuremWallet.ColdWallet.MakeDerivationPathFromIndex(uint64(index)))
+			account := etheuremWallet.GetAccount(uint64(index))
 			pendingBalance, err := client.PendingBalanceAt(context.Background(), account.Address)
 			if err != nil {
 				pendingBalanceChannel <- *big.NewInt(int64(0))
@@ -118,4 +120,21 @@ func(etheuremWallet *ETHWallet) ToJSON() string {
 		log.Fatal(err)
 	}
 	return string(etheuremWalletJson)
+}
+
+func LoadWalletFromFile(file string) *ETHWallet{
+	etheuremWallet := ETHWallet{}
+	jsonData := utils.ImportFromFile(file)
+	err := json.Unmarshal(jsonData, &etheuremWallet)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	etheuremWallet.ColdWallet = wallet.NewColdWallet(etheuremWallet.EncryptedMnemonic, etheuremWallet.OwnerName, ETHEUREM).WithIndex(etheuremWallet.Index)
+	return &etheuremWallet
+}
+
+func(etheuremWallet ETHWallet) ExportWalletToFile(file string) {
+	utils.ExportToFile(etheuremWallet.ToJSON(), file)
+	fmt.Printf("Wallet saved!\n")
 }

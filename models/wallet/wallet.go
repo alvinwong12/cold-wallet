@@ -30,14 +30,17 @@ type ColdWallet struct {
 	Index uint64 `json:"Index"`
 }
 
-
-func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWallet {
+func makeNewHDWallet(mnemonic string) *HDWallet {
 	hdWallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return hdWallet
+}
+
+func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWallet {
 	coldWallet := ColdWallet{
-		HDWallet: hdWallet,
+		HDWallet: makeNewHDWallet(mnemonic),
 		OwnerName: ownerName,
 		Purpose: PURPOSE,
 		CoinType: coinType,
@@ -47,6 +50,10 @@ func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWall
 	return &coldWallet
 }
 
+func(coldWallet *ColdWallet) WithIndex(index uint64) *ColdWallet {
+	coldWallet.Index = index
+	return coldWallet
+}
 
 
 // func(coldWallet *ColdWallet) SetOwnerName(ownerName string){
@@ -59,10 +66,6 @@ func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWall
 
 func(coldWallet *ColdWallet) MakeDerivationPathFromIndex(index uint64) string {
 	return "m/" + coldWallet.Purpose + "/" + coldWallet.CoinType + "/" + "0'/0/" + strconv.FormatUint(index, 10)
-}
-
-func(coldWallet *ColdWallet) GetDerivationPath() string {
-	return coldWallet.MakeDerivationPathFromIndex(coldWallet.Index)
 }
 
 func(coldWallet *ColdWallet) MakeNewAccount() *accounts.Account {
@@ -99,8 +102,10 @@ func(coldWallet *ColdWallet) GetAllAccounts() []*accounts.Account {
 	}()
 
 	allAccounts := make([]*accounts.Account, coldWallet.Index+1)
+	var cur int=0
 	for acc := range accountsChannel {
-		allAccounts = append(allAccounts, acc)
+		allAccounts[cur] = acc
+		cur++
 	}
 	return allAccounts
 }
@@ -122,16 +127,17 @@ func(coldWallet *ColdWallet) ToJSON() string {
 }
 
 func LoadWalletFromFile(file string) *ColdWallet {
+	coldWallet := ColdWallet{}
 	jsonData := utils.ImportFromFile(file)
-	var coldWallet ColdWallet
 	err := json.Unmarshal(jsonData, &coldWallet)
 	if err != nil {
 		log.Fatal(err)
 	}
+	coldWallet.HDWallet = makeNewHDWallet(coldWallet.EncryptedMnemonic)
 	return &coldWallet
 }
 
-func ExportWalletToFile(coldWallet *ColdWallet, file string) {
+func(coldWallet ColdWallet) ExportWalletToFile(file string) {
 	utils.ExportToFile(coldWallet.ToJSON(), file)
 	fmt.Printf("Wallet saved!\n")
 }
