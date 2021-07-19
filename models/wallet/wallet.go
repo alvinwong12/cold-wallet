@@ -3,10 +3,13 @@ package wallet
 import (
 	// "fmt"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
+	"sync"
 
 	// "github.com/ethereum/go-ethereum/core/types"
+	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
@@ -38,6 +41,7 @@ func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWall
 		OwnerName: ownerName,
 		Purpose: PURPOSE,
 		CoinType: coinType,
+		EncryptedMnemonic: mnemonic,
 		Index: uint64(0),
 	}
 	return &coldWallet
@@ -61,19 +65,44 @@ func(coldWallet *ColdWallet) GetDerivationPath() string {
 	return coldWallet.MakeDerivationPathFromIndex(coldWallet.Index)
 }
 
-func(coldWallet *ColdWallet) GetNewAccount() *accounts.Account {
-	account := coldWallet.GetAccount(coldWallet.GetDerivationPath());
+func(coldWallet *ColdWallet) MakeNewAccount() *accounts.Account {
 	coldWallet.Index += 1
+	account := coldWallet.GetAccount(coldWallet.Index);
 	return account
 }
 
-func(coldWallet *ColdWallet) GetAccount(derivationPath string) *accounts.Account {
+func(coldWallet *ColdWallet) GetAccount(index uint64) *accounts.Account {
+	derivationPath := coldWallet.MakeDerivationPathFromIndex(index)
 	path := hdwallet.MustParseDerivationPath(derivationPath)
 	account, err := coldWallet.Derive(path, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return &account
+}
+
+func(coldWallet *ColdWallet) GetAllAccounts() []*accounts.Account {
+	accountsChannel := make(chan *accounts.Account)
+	var wg sync.WaitGroup
+
+	for i := 0; i <= int(coldWallet.Index) ;i++ {
+		wg.Add(1)
+		go func(index int){
+			account := coldWallet.GetAccount(uint64(index))
+			accountsChannel <- account
+			wg.Done()
+		}(i)
+	}
+	go func(){
+		wg.Wait()
+		close(accountsChannel)
+	}()
+
+	allAccounts := make([]*accounts.Account, coldWallet.Index+1)
+	for acc := range accountsChannel {
+		allAccounts = append(allAccounts, acc)
+	}
+	return allAccounts
 }
 
 // func(coldWallet *ColdWallet) GetIndex() uint64 {
@@ -92,3 +121,17 @@ func(coldWallet *ColdWallet) ToJSON() string {
 	return string(coldWalletJson)
 }
 
+func LoadWalletFromFile(file string) *ColdWallet {
+	jsonData := utils.ImportFromFile(file)
+	var coldWallet ColdWallet
+	err := json.Unmarshal(jsonData, &coldWallet)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &coldWallet
+}
+
+func ExportWalletToFile(coldWallet *ColdWallet, file string) {
+	utils.ExportToFile(coldWallet.ToJSON(), file)
+	fmt.Printf("Wallet saved!\n")
+}
