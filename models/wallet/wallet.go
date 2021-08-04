@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	// "github.com/ethereum/go-ethereum/core/types"
+	"github.com/alvinwong12/cold-wallet/models/coinType"
 	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 
@@ -25,7 +26,7 @@ type ColdWallet struct {
 	*HDWallet
 	OwnerName string `json:"OwnerName"`
 	Purpose string `json:"Purpose"`
-	CoinType string `json:"CoinType"`
+	CoinType coinType.CoinType `json:"CoinType"`
 	EncryptedMnemonic string `json:"EncryptedMnemonic"`
 	Index uint64 `json:"Index"`
 }
@@ -38,16 +39,19 @@ func makeNewHDWallet(mnemonic string) *HDWallet {
 	return hdWallet
 }
 
-func NewColdWallet(mnemonic string, ownerName string, coinType string) *ColdWallet {
+func NewColdWallet(mnemonic string, ownerName string, c coinType.CoinType) (*ColdWallet, error) {
+	if !c.CheckSupportCompatability() {
+		return  nil, &coinType.UnsupportedCoinError{Message: c.String() + " is not supported!"}
+	}
 	coldWallet := ColdWallet{
 		HDWallet: makeNewHDWallet(mnemonic),
 		OwnerName: ownerName,
 		Purpose: PURPOSE,
-		CoinType: coinType,
+		CoinType: c,
 		EncryptedMnemonic: mnemonic,
 		Index: uint64(0),
 	}
-	return &coldWallet
+	return &coldWallet, nil
 }
 
 func(coldWallet *ColdWallet) WithIndex(index uint64) *ColdWallet {
@@ -65,7 +69,7 @@ func(coldWallet *ColdWallet) WithIndex(index uint64) *ColdWallet {
 // }
 
 func(coldWallet *ColdWallet) MakeDerivationPathFromIndex(index uint64) string {
-	return "m/" + coldWallet.Purpose + "/" + coldWallet.CoinType + "/" + "0'/0/" + strconv.FormatUint(index, 10)
+	return "m/" + coldWallet.Purpose + "/" + coldWallet.CoinType.Repr() + "/" + "0'/0/" + strconv.FormatUint(index, 10)
 }
 
 func(coldWallet *ColdWallet) MakeNewAccount() *accounts.Account {
