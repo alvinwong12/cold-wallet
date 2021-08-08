@@ -10,7 +10,7 @@ const (
 	NOT_A_COIN
 )
 
-func getSupportedCoinTypes() []CoinType{
+func GetSupportedCoinTypes() []CoinType{
 	coinTypes := []CoinType{ETHEUREM}
 	return coinTypes
 }
@@ -57,11 +57,10 @@ func (e *UnsupportedCoinError) Error() string {
 }
 
 func (c CoinType) CheckSupportCompatability() bool {
-	for _, coinType := range getSupportedCoinTypes() {
+	for _, coinType := range GetSupportedCoinTypes() {
 		if c == coinType {
 			return true
 		}
 	}
 	return false
 }
-
