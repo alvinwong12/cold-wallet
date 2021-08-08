@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	// "github.com/ethereum/go-ethereum/core/types"
-	"github.com/alvinwong12/cold-wallet/models/coinType"
+	"github.com/alvinwong12/cold-wallet/models/coin"
 	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 
@@ -26,7 +26,7 @@ type ColdWallet struct {
 	*HDWallet
 	OwnerName string `json:"OwnerName"`
 	Purpose string `json:"Purpose"`
-	CoinType coinType.CoinType `json:"CoinType"`
+	CoinType coin.CoinType `json:"CoinType"`
 	EncryptedMnemonic string `json:"EncryptedMnemonic"`
 	Index uint64 `json:"Index"`
 }
@@ -39,15 +39,15 @@ func makeNewHDWallet(mnemonic string) *HDWallet {
 	return hdWallet
 }
 
-func NewColdWallet(mnemonic string, ownerName string, c coinType.CoinType) (*ColdWallet, error) {
-	if !c.CheckSupportCompatability() {
-		return  nil, &coinType.UnsupportedCoinError{Message: c.String() + " is not supported!"}
+func NewColdWallet(mnemonic string, ownerName string, coinType coin.CoinType) (*ColdWallet, error) {
+	if !coinType.CheckSupportCompatability() {
+		return  nil, &coin.UnsupportedCoinError{Message: coinType.String() + " is not supported!"}
 	}
 	coldWallet := ColdWallet{
 		HDWallet: makeNewHDWallet(mnemonic),
 		OwnerName: ownerName,
 		Purpose: PURPOSE,
-		CoinType: c,
+		CoinType: coinType,
 		EncryptedMnemonic: mnemonic,
 		Index: uint64(0),
 	}
@@ -58,15 +58,6 @@ func(coldWallet *ColdWallet) WithIndex(index uint64) *ColdWallet {
 	coldWallet.Index = index
 	return coldWallet
 }
-
-
-// func(coldWallet *ColdWallet) SetOwnerName(ownerName string){
-// 	coldWallet.ownerName = ownerName
-// }
-
-// func(coldWallet *ColdWallet) GetOwnerName() string{
-// 	return coldWallet.ownerName
-// }
 
 func(coldWallet *ColdWallet) MakeDerivationPathFromIndex(index uint64) string {
 	return "m/" + coldWallet.Purpose + "/" + coldWallet.CoinType.Repr() + "/" + "0'/0/" + strconv.FormatUint(index, 10)
@@ -114,14 +105,6 @@ func(coldWallet *ColdWallet) GetAllAccounts() []*accounts.Account {
 	return allAccounts
 }
 
-// func(coldWallet *ColdWallet) GetIndex() uint64 {
-// 	return coldWallet.index
-// }
-
-// func(coldWallet *ColdWallet) SetIndex(index uint64) {
-// 	coldWallet.index = index
-// }
-
 func(coldWallet *ColdWallet) ToJSON() string {
 	coldWalletJson, err := json.MarshalIndent(coldWallet, "", "  ")
 	if err != nil {
@@ -130,7 +113,21 @@ func(coldWallet *ColdWallet) ToJSON() string {
 	return string(coldWalletJson)
 }
 
-func LoadWalletFromFile(file string) *ColdWallet {
+func(coldWallet ColdWallet) ExportWalletToFile(file string) {
+	utils.ExportToFile(coldWallet.ToJSON(), file)
+	fmt.Printf("Wallet saved!\n")
+}
+
+func LoadWalletFromFile(file string, coinType coin.CoinType) interface{} {
+	switch coinType {
+		case coin.ETHEUREM:
+			return loadETHWalletFromFile(file)
+		default:
+			return loadColdWalletFromFile(file)
+	}
+}
+
+func loadColdWalletFromFile(file string) *ColdWallet {
 	coldWallet := ColdWallet{}
 	jsonData := utils.ImportFromFile(file)
 	err := json.Unmarshal(jsonData, &coldWallet)
@@ -139,9 +136,4 @@ func LoadWalletFromFile(file string) *ColdWallet {
 	}
 	coldWallet.HDWallet = makeNewHDWallet(coldWallet.EncryptedMnemonic)
 	return &coldWallet
-}
-
-func(coldWallet ColdWallet) ExportWalletToFile(file string) {
-	utils.ExportToFile(coldWallet.ToJSON(), file)
-	fmt.Printf("Wallet saved!\n")
 }
