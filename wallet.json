@@ -1,0 +1,11 @@
+{
+  "Wallet": {
+    "OwnerName": "Alvin",
+    "Purpose": "44'",
+    "CoinType": "60'",
+    "EncryptedMnemonic": "tag volcano eight thank tide danger coast health above argue embrace heavy",
+    "Index": 1
+  },
+  "WEI": "1e+18",
+  "GasLimitSimple": 21000
+}
