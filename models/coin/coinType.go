@@ -1,4 +1,4 @@
-package coinType
+package coin
 
 import "encoding/json"
 
