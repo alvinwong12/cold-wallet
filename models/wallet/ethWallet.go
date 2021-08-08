@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/alvinwong12/cold-wallet/models/coinType"
+	"github.com/alvinwong12/cold-wallet/models/coin"
 	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -21,7 +21,7 @@ type ETHWallet struct {
 }
 
 func NewETHWallet(mnemonic string, ownerName string) *ETHWallet {
-	cw, err := NewColdWallet(mnemonic, ownerName, coinType.ETHEUREM)
+	cw, err := NewColdWallet(mnemonic, ownerName, coin.ETHEUREM)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func loadETHWalletFromFile(file string) *ETHWallet{
 		log.Fatal(err)
 	}
 
-	cw, err := NewColdWallet(etheuremWallet.EncryptedMnemonic, etheuremWallet.OwnerName, coinType.ETHEUREM)
+	cw, err := NewColdWallet(etheuremWallet.EncryptedMnemonic, etheuremWallet.OwnerName, coin.ETHEUREM)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alvinwong12/cold-wallet/models/coinType"
+	"github.com/alvinwong12/cold-wallet/models/coin"
 	"github.com/alvinwong12/cold-wallet/models/wallet"
 )
 
@@ -21,17 +21,17 @@ func (service *LoadWalletService) Run() (interface{}, error){
 	return wallet.LoadWalletFromFile(file, chosenCoin), nil
 }
 
-func chooseCoinType() (coinType.CoinType, error){
+func chooseCoinType() (coin.CoinType, error){
 	fmt.Println("Select a coin type from the menu:")
-	for i, coin := range coinType.GetSupportedCoinTypes(){
-		fmt.Printf("%s %d\n", coin, i)
+	for i, coinType := range coin.GetSupportedCoinTypes(){
+		fmt.Printf("%s %d\n", coinType, i)
 	}
-	var choice coinType.CoinType
+	var choice coin.CoinType
 	fmt.Scanln(&choice)
 	if choice.CheckSupportCompatability() {
 		return choice, nil
 	} else {
-		return coinType.NOT_A_COIN, errors.New("Invalid choice")
+		return coin.NOT_A_COIN, errors.New("Invalid choice")
 	}
 }
 
