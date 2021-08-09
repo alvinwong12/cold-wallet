@@ -16,10 +16,6 @@ func main(){
 		os.Exit(1)
 	}
 	command := os.Args[1]
-	serviceConfig, err := services.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	var service services.Service
 	switch strings.ToLower(command) {
@@ -34,6 +30,10 @@ func main(){
 		default:
 			usage()
 			os.Exit(1)
+	}
+	serviceConfig, err := services.Init()
+	if err != nil {
+		log.Fatal(err)
 	}
 	_, err = service.Run(serviceConfig)
 	if err != nil {
