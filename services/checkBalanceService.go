@@ -1,8 +1,9 @@
 package services
 
 import (
-
 	"fmt"
+	"math/big"
+
 	"github.com/alvinwong12/cold-wallet/models/coin"
 	"github.com/alvinwong12/cold-wallet/models/wallet"
 )
@@ -32,5 +33,11 @@ func ethBalanceService(ethWallet *wallet.ETHWallet, serviceConfig *ServiceConfig
 	if !checkEtheureumNetworkStatus(serviceConfig.ETHNetworkClient) {
 		return nil, &ServiceUnavailableError{Message: "CheckBalanceService: Cannot connect to the Etheurem network."}
 	}
-	return ethWallet.GetBalanceInEth(serviceConfig.ETHNetworkClient), nil
+	balance := ethWallet.GetBalanceInEth(serviceConfig.ETHNetworkClient)
+	displayBalance(balance)
+	return balance, nil
+}
+
+func displayBalance(balance *big.Float) {
+	fmt.Printf("Wallet balance: %f\n", balance)
 }

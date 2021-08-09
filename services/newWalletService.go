@@ -21,6 +21,7 @@ func (service *NewWalletService) Run(serviceConfig *ServiceConfig) (interface{},
 		case coin.ETHEUREM:
 			newWallet := wallet.NewETHWallet(mnemonic, ownerName)
 			newWallet.ExportWalletToFileEncrypted(serviceConfig.WalletFilePath, serviceConfig.password)
+			fmt.Printf("Wallet: %s\n", newWallet.ToJSON())
 			return newWallet, nil
 		default:
 			newWallet, err := wallet.NewColdWallet(mnemonic , ownerName , serviceConfig.CoinType)
@@ -28,6 +29,7 @@ func (service *NewWalletService) Run(serviceConfig *ServiceConfig) (interface{},
 			if err != nil {
 				return nil, err
 			}
+			fmt.Printf("Wallet: %s\n", newWallet.ToJSON())
 			return newWallet, nil
 	}
 }
