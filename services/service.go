@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/alvinwong12/cold-wallet/models/coin"
@@ -38,10 +37,7 @@ func (e *ServiceUnavailableError) Error() string {
 func Init() (*ServiceConfig, error) {
 	file := getWalletFile()
 	password := getPassword()
-	chosenCoin, err := chooseCoinType()
-	if err != nil {
-		return nil, err
-	}
+	chosenCoin := chooseCoinType()
 	
 	// serviceConfig
 	serviceConfig := ServiceConfig{CoinType: chosenCoin, WalletFilePath: file}
@@ -61,18 +57,18 @@ func Init() (*ServiceConfig, error) {
 	return &serviceConfig, nil
 }
 
-func chooseCoinType() (coin.CoinType, error){
+func chooseCoinType() coin.CoinType{
 	fmt.Println("Select a coin type from the menu:")
 	for i, coinType := range coin.GetSupportedCoinTypes(){
 		fmt.Printf("%s %d\n", coinType, i)
 	}
 	var choice coin.CoinType
 	fmt.Scanln(&choice)
-	if choice.CheckSupportCompatability() {
-		return choice, nil
-	} else {
-		return coin.NOT_A_COIN, errors.New("Invalid choice")
+	for choice.CheckSupportCompatability() == false {
+		fmt.Println("Invalid choice. please choose again")
+		fmt.Scanln(&choice)
 	}
+	return choice
 }
 
 func getWalletFile() string {
