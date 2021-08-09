@@ -47,6 +47,6 @@ func usage() {
 	fmt.Println("	new-wallet			Create a new Wallet.")
 	fmt.Println("	new-account			Create a new account.")
 	fmt.Println("	get-account			Get an account address.")
-	fmt.Println("	get-balance			Check wallet balance.")
+	fmt.Println("	get-balance			Check wallet balance. (Caution! Requires internet access)")
 	fmt.Println("")
 }
