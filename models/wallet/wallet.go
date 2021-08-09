@@ -157,3 +157,7 @@ func loadColdWalletFromFile(file string, password string, encrypted bool) *ColdW
 	coldWallet.HDWallet = makeNewHDWallet(coldWallet.Mnemonic)
 	return &coldWallet
 }
+
+func(coldWallet *ColdWallet) GetLatestAccount() *accounts.Account {
+	return coldWallet.GetAccount(coldWallet.Index)
+}
