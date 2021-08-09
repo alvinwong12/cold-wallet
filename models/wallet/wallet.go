@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	// "fmt"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"strconv"
 	"sync"
 
-	// "github.com/ethereum/go-ethereum/core/types"
 	"github.com/alvinwong12/cold-wallet/models/coin"
 	"github.com/alvinwong12/cold-wallet/utils"
 	"github.com/ethereum/go-ethereum/accounts"
