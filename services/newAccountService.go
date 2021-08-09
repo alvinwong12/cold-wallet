@@ -21,6 +21,7 @@ func (service *NewAccountService) Run(serviceConfig *ServiceConfig) (interface{}
 	switch serviceConfig.CoinType {
 		case coin.ETHEUREM:
 			newAccount := loadedWallet.(*wallet.ETHWallet).MakeNewAccount()
+			loadedWallet.(*wallet.ETHWallet).ExportWalletToFileEncrypted(serviceConfig.WalletFilePath, serviceConfig.password)
 			displayAccount(newAccount)
 			return newAccount, nil
 		default:
@@ -29,5 +30,5 @@ func (service *NewAccountService) Run(serviceConfig *ServiceConfig) (interface{}
 }
 
 func displayAccount(account *accounts.Account) {
-	fmt.Printf("New Account: %s\n", account.Address.Hex())
+	fmt.Printf("Account: %s\n", account.Address.Hex())
 }
