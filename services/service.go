@@ -15,7 +15,7 @@ const (
 )
 
 type Service interface {
-	Run(serviceConfig *ServiceConfig) (*interface{}, error)
+	Run(serviceConfig *ServiceConfig) (interface{}, error)
 }
 
 // config used to store all information services require
@@ -36,11 +36,13 @@ func (e *ServiceUnavailableError) Error() string {
 }
 
 func Init() (*ServiceConfig, error) {
+	file := getWalletFile()
+	password := getPassword()
 	chosenCoin, err := chooseCoinType()
 	if err != nil {
 		return nil, err
 	}
-	file := getWalletFile()
+	
 	// serviceConfig
 	serviceConfig := ServiceConfig{CoinType: chosenCoin, WalletFilePath: file}
 	switch chosenCoin {
@@ -54,7 +56,7 @@ func Init() (*ServiceConfig, error) {
 			break
 	}
 
-	serviceConfig.password = getPassword()
+	serviceConfig.password = password
 	serviceConfig.encrypted = true
 	return &serviceConfig, nil
 }
