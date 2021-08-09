@@ -68,7 +68,7 @@ func Decrypt(cipherText []byte, key string) []byte {
 	cipherText = cipherText[gcm.NonceSize():]
 	plainText, err := gcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Incorrect/Invalid key")
 	}
 	return plainText
 } 
