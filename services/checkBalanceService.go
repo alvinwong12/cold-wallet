@@ -14,7 +14,6 @@ type CheckBalanceService struct {
 
 
 func (service *CheckBalanceService) Run(serviceConfig *ServiceConfig) (interface{}, error){
-	
 	loadWalletService :=  LoadWalletService{}
 	loadedWallet, err := loadWalletService.Run(serviceConfig)
 	if err != nil {

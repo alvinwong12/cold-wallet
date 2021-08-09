@@ -3,8 +3,8 @@
     "OwnerName": "Alvin",
     "Purpose": "44'",
     "CoinType": "60'",
-    "EncryptedMnemonic": "tag volcano eight thank tide danger coast health above argue embrace heavy",
-    "Index": 1
+    "Mnemonic": "000000000000000000000000d86715e3f22f5ba8f21d2424b2e96698b932ece4592cde47e77c150ada0bdc462b6973a7f2051c9312d22293564f549dfa6bc98d97da755b6bd08292428e148c563d6035eb0d6eec5d456e33f7f2c292137d51b338463251ee12",
+    "Index": 0
   },
   "WEI": "1e+18",
   "GasLimitSimple": 21000

@@ -23,6 +23,8 @@ type ServiceConfig struct {
 	CoinType coin.CoinType
 	WalletFilePath string
 	ETHNetworkClient *ethclient.Client
+	password string
+	encrypted bool
 }
 
 type ServiceUnavailableError struct {
@@ -52,6 +54,8 @@ func Init() (*ServiceConfig, error) {
 			break
 	}
 
+	serviceConfig.password = getPassword()
+	serviceConfig.encrypted = true
 	return &serviceConfig, nil
 }
 
@@ -85,4 +89,15 @@ func checkEtheureumNetworkStatus(client *ethclient.Client) bool {
 		return false
 	}
 	return true
+}
+
+func getPassword() string {
+	fmt.Println("Please enter the password for encrypting your wallet (16 digits):")
+	var password string
+	fmt.Scanln(&password)
+	for len(password) != 16 {
+		fmt.Println("Please enter a 16 digit password:")
+		fmt.Scanln(&password)
+	}
+	return password
 }

@@ -2,6 +2,7 @@ package wallet
 
 import (
 	// "fmt"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -27,7 +28,7 @@ type ColdWallet struct {
 	OwnerName string `json:"OwnerName"`
 	Purpose string `json:"Purpose"`
 	CoinType coin.CoinType `json:"CoinType"`
-	EncryptedMnemonic string `json:"EncryptedMnemonic"`
+	Mnemonic string `json:"Mnemonic"`
 	Index uint64 `json:"Index"`
 }
 
@@ -48,7 +49,7 @@ func NewColdWallet(mnemonic string, ownerName string, coinType coin.CoinType) (*
 		OwnerName: ownerName,
 		Purpose: PURPOSE,
 		CoinType: coinType,
-		EncryptedMnemonic: mnemonic,
+		Mnemonic: mnemonic,
 		Index: uint64(0),
 	}
 	return &coldWallet, nil
@@ -118,22 +119,41 @@ func(coldWallet ColdWallet) ExportWalletToFile(file string) {
 	fmt.Printf("Wallet saved!\n")
 }
 
-func LoadWalletFromFile(file string, coinType coin.CoinType) interface{} {
+func(coldWallet ColdWallet) ExportWalletToFileEncrypted(file string, key string) {
+	encryptedWallet := ColdWallet{
+		OwnerName: coldWallet.OwnerName,
+		Purpose: coldWallet.Purpose,
+		CoinType: coldWallet.CoinType,
+		Mnemonic: coldWallet.Mnemonic,
+		Index: coldWallet.Index,
+	}
+	encryptedWallet.Mnemonic = hex.EncodeToString(utils.Encrypt([]byte(encryptedWallet.Mnemonic), key))
+	encryptedWallet.ExportWalletToFile(file)
+}
+
+func LoadWalletFromFile(file string, coinType coin.CoinType, password string, encrypted bool) interface{} {
 	switch coinType {
 		case coin.ETHEUREM:
-			return loadETHWalletFromFile(file)
+			return loadETHWalletFromFile(file, password, encrypted)
 		default:
-			return loadColdWalletFromFile(file)
+			return loadColdWalletFromFile(file, password, encrypted)
 	}
 }
 
-func loadColdWalletFromFile(file string) *ColdWallet {
+func loadColdWalletFromFile(file string, password string, encrypted bool) *ColdWallet {
 	coldWallet := ColdWallet{}
 	jsonData := utils.ImportFromFile(file)
 	err := json.Unmarshal(jsonData, &coldWallet)
 	if err != nil {
 		log.Fatal(err)
 	}
-	coldWallet.HDWallet = makeNewHDWallet(coldWallet.EncryptedMnemonic)
+	if encrypted {
+		mnemonicBytes, err := hex.DecodeString(coldWallet.Mnemonic)
+		if err != nil {
+			log.Fatal(err)
+		}
+		coldWallet.Mnemonic = string(utils.Decrypt(mnemonicBytes, password))
+	}
+	coldWallet.HDWallet = makeNewHDWallet(coldWallet.Mnemonic)
 	return &coldWallet
 }

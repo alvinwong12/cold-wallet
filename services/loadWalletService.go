@@ -9,5 +9,5 @@ type LoadWalletService struct {
 }
 
 func (service *LoadWalletService) Run(serviceConfig *ServiceConfig) (interface{}, error){
-	return wallet.LoadWalletFromFile(serviceConfig.WalletFilePath, serviceConfig.CoinType), nil
+	return wallet.LoadWalletFromFile(serviceConfig.WalletFilePath, serviceConfig.CoinType, serviceConfig.password, serviceConfig.encrypted), nil
 }

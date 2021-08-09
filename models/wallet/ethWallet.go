@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -128,15 +129,33 @@ func(etheuremWallet ETHWallet) ExportWalletToFile(file string) {
 	fmt.Printf("Wallet saved!\n")
 }
 
-func loadETHWalletFromFile(file string) *ETHWallet{
+func(etheuremWallet ETHWallet) ExportWalletToFileEncrypted(file string, key string) {
+	tempColdWallet ,  _ := NewColdWallet(etheuremWallet.Mnemonic, etheuremWallet.OwnerName, etheuremWallet.CoinType)
+	tempColdWallet.Index = etheuremWallet.Index
+	encryptedWallet := ETHWallet{
+		ColdWallet: tempColdWallet,
+		Wei: etheuremWallet.Wei,
+		Gas_limit_simple_tx: etheuremWallet.Gas_limit_simple_tx,
+	}
+	encryptedWallet.Mnemonic = hex.EncodeToString(utils.Encrypt([]byte(etheuremWallet.Mnemonic), key))
+	encryptedWallet.ExportWalletToFile(file)
+}
+
+func loadETHWalletFromFile(file string, key string, encrypted bool) *ETHWallet{
 	etheuremWallet := ETHWallet{}
 	jsonData := utils.ImportFromFile(file)
 	err := json.Unmarshal(jsonData, &etheuremWallet)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	cw, err := NewColdWallet(etheuremWallet.EncryptedMnemonic, etheuremWallet.OwnerName, coin.ETHEUREM)
+	if encrypted {
+		mnemonicBytes, err := hex.DecodeString(etheuremWallet.Mnemonic)
+		if err != nil {
+			log.Fatal(err)
+		}
+		etheuremWallet.Mnemonic = string(utils.Decrypt(mnemonicBytes, key))
+	}
+	cw, err := NewColdWallet(etheuremWallet.Mnemonic, etheuremWallet.OwnerName, coin.ETHEUREM)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,4 +163,3 @@ func loadETHWalletFromFile(file string) *ETHWallet{
 	etheuremWallet.ColdWallet = cw
 	return &etheuremWallet
 }
-
